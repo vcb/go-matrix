@@ -66,7 +66,6 @@ func (A *Matrix) Mul(B *Matrix) (*Matrix, error) {
 				x.Mul(A.el[i][j], B.el[j][k])
 				C.el[i][k].Add(C.el[i][k], x)
 			}
-			fmt.Println("")
 		}
 	}
 	return C, nil
