@@ -69,7 +69,7 @@ func (m *Matrix) Transpose() *Matrix {
 	mT := NewMatrix(m.cols, m.rows)
 	for i := 0; i < m.rows; i++ {
 		for j := 0; j < m.cols; j++ {
-			mT.el[j][i] = m.el[i][j]
+			mT.el[j][i].Set(m.el[i][j])
 		}
 	}
 	return mT
