@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -22,6 +23,32 @@ func NewMatrix(rows, cols int) *Matrix {
 		}
 	}
 	A.rows, A.cols = rows, cols
+	return A
+}
+
+// NewMatrixFromStr returns a new matrix from a MATLAB-style string.
+// Elements separated by commas, rows by semicolons, e.g. "1, 2; 3, 4".
+func NewMatrixFromStr(s string) *Matrix {
+	rows := strings.Split(s, ";")
+	var els []string
+	for _, row := range rows {
+		els = append(els, strings.Split(row, ",")...)
+	}
+	if len(els) == 0 {
+		return nil
+	}
+
+	A := NewMatrix(len(rows), len(els)/len(rows))
+	for i := 0; i < A.rows; i++ {
+		for j := 0; j < A.cols; j++ {
+			el := strings.TrimSpace(els[i*A.cols+j])
+			x, err := strconv.ParseFloat(el, 64)
+			if err != nil {
+				return nil
+			}
+			A.Set(i, j, x)
+		}
+	}
 	return A
 }
 
