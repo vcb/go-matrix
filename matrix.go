@@ -13,16 +13,25 @@ type Matrix struct {
 
 // NewMatrix returns a m-by-n matrix
 func NewMatrix(rows, cols int) *Matrix {
-	m := &Matrix{}
-	m.el = make([][]*big.Float, rows)
-	for i := range m.el {
-		m.el[i] = make([]*big.Float, cols)
-		for j := range m.el[i] {
-			m.el[i][j] = new(big.Float)
+	A := &Matrix{}
+	A.el = make([][]*big.Float, rows)
+	for i := range A.el {
+		A.el[i] = make([]*big.Float, cols)
+		for j := range A.el[i] {
+			A.el[i][j] = new(big.Float)
 		}
 	}
-	m.rows, m.cols = rows, cols
-	return m
+	A.rows, A.cols = rows, cols
+	return A
+}
+
+// NewIdentityMatrix returns a m-by-m identity matrix
+func NewIdentityMatrix(dim int) *Matrix {
+	mI := NewMatrix(dim, dim)
+	for ij := 0; ij < dim; ij++ {
+		mI.Set(ij, ij, 1)
+	}
+	return mI
 }
 
 func (m *Matrix) String() string {
@@ -39,8 +48,58 @@ func (m *Matrix) String() string {
 }
 
 // Set sets the value at (i, j) to x
-func (m *Matrix) Set(i, j int, x float64) {
-	m.el[i][j].SetFloat64(x)
+func (A *Matrix) Set(i, j int, x float64) {
+	A.el[i][j].SetFloat64(x)
+}
+
+// Mul returns the product A * B
+func (A *Matrix) Mul(B *Matrix) (*Matrix, error) {
+	if A.cols != B.rows {
+		return nil, fmt.Errorf("matrices have wrong dimensions")
+	}
+
+	C := NewMatrix(A.rows, B.cols)
+	x := new(big.Float)
+	for i := 0; i < A.rows; i++ {
+		for k := 0; k < B.cols; k++ {
+			for j := 0; j < A.cols; j++ {
+				x.Mul(A.el[i][j], B.el[j][k])
+				C.el[i][k].Add(C.el[i][k], x)
+			}
+			fmt.Println("")
+		}
+	}
+	return C, nil
+}
+
+// Add returns the sum A + B
+func (A *Matrix) Add(B *Matrix) (*Matrix, error) {
+	if A.rows != B.rows || A.cols != B.cols {
+		return nil, fmt.Errorf("matrices have different dimensions")
+	}
+
+	C := NewMatrix(A.rows, A.cols)
+	for i := 0; i < A.rows; i++ {
+		for j := 0; j < A.cols; j++ {
+			C.el[i][j].Add(A.el[i][j], B.el[i][j])
+		}
+	}
+	return C, nil
+}
+
+// Sub returns the result for A - B
+func (A *Matrix) Sub(B *Matrix) (*Matrix, error) {
+	if A.rows != B.rows || A.cols != B.cols {
+		return nil, fmt.Errorf("matrices have different dimensions")
+	}
+
+	C := NewMatrix(A.rows, A.cols)
+	for i := 0; i < A.rows; i++ {
+		for j := 0; j < A.cols; j++ {
+			C.el[i][j].Sub(A.el[i][j], B.el[i][j])
+		}
+	}
+	return C, nil
 }
 
 // Determinant calculates the determinant of a n-by-n matrix
@@ -48,35 +107,41 @@ func (m *Matrix) Set(i, j int, x float64) {
 //
 // det(A) = det(P^(-1)) * det(L) * det(U),
 // where A = P^(-1) * L * U
-func (m *Matrix) Determinant() (*big.Float, error) {
-	if m.rows != m.cols {
-		return nil, fmt.Errorf("matrix dimensions (%d, %d) are not equal", m.rows, m.cols)
+func (A *Matrix) Determinant() (*big.Float, error) {
+	if A.rows != A.cols {
+		return nil, fmt.Errorf("matrix isn't square")
 	}
 	// l, u, pInv := m.LUPDecompose()
 	// TODO
 	return new(big.Float), nil
 }
 
-// LUPDecompose does stuff
-func (m *Matrix) LUPDecompose() (*Matrix, *Matrix, *Matrix) {
-	var l, u, pInv *Matrix
+// LUPDecompose
+func (A *Matrix) LUPDecompose() (*Matrix, *Matrix, *Matrix) {
+	var L, U, PInv *Matrix
 	// TODO
-	return l, u, pInv
+	return L, U, PInv
 }
 
 // Transpose returns the transposition of the matrix m
-func (m *Matrix) Transpose() *Matrix {
-	mT := NewMatrix(m.cols, m.rows)
-	for i := 0; i < m.rows; i++ {
-		for j := 0; j < m.cols; j++ {
-			mT.el[j][i].Set(m.el[i][j])
+func (A *Matrix) Transpose() *Matrix {
+	AT := NewMatrix(A.cols, A.rows)
+	for i := 0; i < A.rows; i++ {
+		for j := 0; j < A.cols; j++ {
+			AT.el[j][i].Set(A.el[i][j])
 		}
 	}
-	return mT
+	return AT
 }
 
 // Inverse returns the inverse of the matrix m
-func (m *Matrix) Inverse() *Matrix {
+func (A *Matrix) Inverse() (*Matrix, error) {
+	if A.rows != A.cols {
+		return nil, fmt.Errorf("matrix isn't square")
+	}
+
+	mInv := NewMatrix(A.cols, A.rows)
 	// TODO
-	return &Matrix{}
+
+	return mInv, nil
 }
