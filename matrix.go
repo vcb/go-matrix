@@ -7,12 +7,13 @@ import (
 	"strings"
 )
 
+// Matrix is a basic matrix.
 type Matrix struct {
 	el         [][]*big.Float
 	rows, cols int
 }
 
-// NewMatrix returns a m-by-n matrix
+// NewMatrix returns a m-by-n matrix.
 func NewMatrix(rows, cols int) *Matrix {
 	A := &Matrix{}
 	A.el = make([][]*big.Float, rows)
@@ -52,7 +53,7 @@ func NewMatrixFromStr(s string) *Matrix {
 	return A
 }
 
-// NewIdentityMatrix returns a m-by-m identity matrix
+// NewIdentityMatrix returns an identity matrix.
 func NewIdentityMatrix(dim int) *Matrix {
 	mI := NewMatrix(dim, dim)
 	for ij := 0; ij < dim; ij++ {
@@ -74,12 +75,18 @@ func (m *Matrix) String() string {
 	return strings.Join(s, "\n")
 }
 
-// Set sets the value at (i, j) to x
+// Copy returns a copy of the matrix.
+func (A *Matrix) Copy() *Matrix {
+	c := *A
+	return &c
+}
+
+// Set sets the value at (i, j) to x.
 func (A *Matrix) Set(i, j int, x float64) {
 	A.el[i][j].SetFloat64(x)
 }
 
-// Mul returns the product A * B
+// Mul returns the product A * B.
 func (A *Matrix) Mul(B *Matrix) (*Matrix, error) {
 	if A.cols != B.rows {
 		return nil, fmt.Errorf("matrices have wrong dimensions")
@@ -98,7 +105,7 @@ func (A *Matrix) Mul(B *Matrix) (*Matrix, error) {
 	return C, nil
 }
 
-// Add returns the sum A + B
+// Add returns the sum A + B.
 func (A *Matrix) Add(B *Matrix) (*Matrix, error) {
 	if A.rows != B.rows || A.cols != B.cols {
 		return nil, fmt.Errorf("matrices have different dimensions")
@@ -113,7 +120,7 @@ func (A *Matrix) Add(B *Matrix) (*Matrix, error) {
 	return C, nil
 }
 
-// Sub returns the result for A - B
+// Sub returns the result for A - B.
 func (A *Matrix) Sub(B *Matrix) (*Matrix, error) {
 	if A.rows != B.rows || A.cols != B.cols {
 		return nil, fmt.Errorf("matrices have different dimensions")
@@ -128,12 +135,57 @@ func (A *Matrix) Sub(B *Matrix) (*Matrix, error) {
 	return C, nil
 }
 
-// Determinant calculates the determinant of a n-by-n matrix
-// using LUP decomposition if possible
-//
-// det(A) = det(P^(-1)) * det(L) * det(U),
-// where A = P^(-1) * L * U
-func (A *Matrix) Determinant() (*big.Float, error) {
+// Rref returns a reduced row-echelon form of the matrix.
+func (A *Matrix) Rref() *Matrix { return nil } // TODO
+
+// Ref returns a row-echelon form of the matrix using Gaussian elimination.
+func (A *Matrix) Ref() *Matrix {
+	B := A.Copy()
+	var i, j int
+	for i < B.rows && j < B.cols {
+		// look for pivot row
+		iMax := func(i int) int {
+			var iMax int
+			var max *big.Float
+			for ; i < B.rows; i++ {
+				b := new(big.Float).Copy(B.el[i][j])
+				b.Abs(b)
+				if max == nil || b.Cmp(max) == 1 {
+					max, iMax = b, i
+				}
+			}
+			return iMax
+		}(i)
+		if B.el[iMax][j].Cmp(big.NewFloat(0)) == 0 {
+			j++
+			continue
+		}
+
+		// swap rows
+		if i != iMax {
+			pivot := append([]*big.Float(nil), B.el[iMax]...)
+			B.el[iMax] = B.el[i]
+			B.el[i] = pivot
+		}
+
+		for h := i + 1; h < B.rows; h++ {
+			q := new(big.Float).Quo(B.el[h][j], B.el[i][j])
+			B.Set(h, j, 0)
+			for k := j + 1; k < B.cols; k++ {
+				x := new(big.Float).Mul(q, B.el[i][k])
+				x.Sub(B.el[h][k], x)
+				B.el[h][k] = x
+			}
+		}
+
+		i++
+		j++
+	}
+	return B
+}
+
+// Det calculates the determinant of the matrix.
+func (A *Matrix) Det() (*big.Float, error) {
 	if A.rows != A.cols {
 		return nil, fmt.Errorf("matrix isn't square")
 	}
@@ -149,7 +201,7 @@ func (A *Matrix) LUPDecompose() (*Matrix, *Matrix, *Matrix) {
 	return L, U, PInv
 }
 
-// Transpose returns the transposition of the matrix m
+// Transpose returns the transpose of the matrix.
 func (A *Matrix) Transpose() *Matrix {
 	AT := NewMatrix(A.cols, A.rows)
 	for i := 0; i < A.rows; i++ {
@@ -160,7 +212,7 @@ func (A *Matrix) Transpose() *Matrix {
 	return AT
 }
 
-// Inverse returns the inverse of the matrix m
+// Inverse returns the inverse of the matrix.
 func (A *Matrix) Inverse() (*Matrix, error) {
 	if A.rows != A.cols {
 		return nil, fmt.Errorf("matrix isn't square")
