@@ -62,12 +62,12 @@ func NewIdentityMatrix(dim int) *Matrix {
 	return mI
 }
 
-func (m *Matrix) String() string {
+func (A *Matrix) String() string {
 	s := []string{}
-	for i := range m.el {
+	for i := range A.el {
 		l := []string{}
-		for j := range m.el[i] {
-			l = append(l, fmt.Sprintf("% 3s", m.el[i][j].String()))
+		for j := range A.el[i] {
+			l = append(l, fmt.Sprintf("% 3s", A.el[i][j].String()))
 		}
 		s = append(s, fmt.Sprintf("%s",
 			strings.Join(l, " ")))
@@ -142,6 +142,7 @@ func (A *Matrix) Rref() *Matrix { return nil } // TODO
 func (A *Matrix) Ref() *Matrix {
 	B := A.Copy()
 	var i, j int
+	q, x := new(big.Float), new(big.Float)
 	for i < B.rows && j < B.cols {
 		// look for pivot row
 		iMax := func(i int) int {
@@ -169,12 +170,12 @@ func (A *Matrix) Ref() *Matrix {
 		}
 
 		for h := i + 1; h < B.rows; h++ {
-			q := new(big.Float).Quo(B.el[h][j], B.el[i][j])
+			q.Quo(B.el[h][j], B.el[i][j])
 			B.Set(h, j, 0)
 			for k := j + 1; k < B.cols; k++ {
-				x := new(big.Float).Mul(q, B.el[i][k])
+				x.Mul(q, B.el[i][k])
 				x.Sub(B.el[h][k], x)
-				B.el[h][k] = x
+				B.el[h][k].Copy(x)
 			}
 		}
 
@@ -189,16 +190,44 @@ func (A *Matrix) Det() (*big.Float, error) {
 	if A.rows != A.cols {
 		return nil, fmt.Errorf("matrix isn't square")
 	}
-	// l, u, pInv := m.LUPDecompose()
 	// TODO
 	return new(big.Float), nil
 }
 
-// LUPDecompose
-func (A *Matrix) LUPDecompose() (*Matrix, *Matrix, *Matrix) {
-	var L, U, PInv *Matrix
-	// TODO
-	return L, U, PInv
+// LU factors a square matrix as the product of lower and upper triangular matrices.
+func (A *Matrix) LU() (*Matrix, *Matrix, error) {
+	if A.rows != A.cols {
+		return nil, nil, fmt.Errorf("matrix isn't square")
+	}
+	L, U := NewIdentityMatrix(A.rows), NewIdentityMatrix(A.rows)
+
+	// based on http://lampx.tugraz.at/~hadley/num/ch2/2.3.php
+	x := new(big.Float)
+	for i := 0; i < A.rows; i++ {
+		// upper
+		for j := i; j < A.rows; j++ {
+			U.el[i][j].Copy(A.el[i][j])
+
+			for k := 0; k < i; k++ {
+				x.Mul(L.el[i][k], U.el[k][j])
+				U.el[i][j].Sub(U.el[i][j], x)
+			}
+		}
+
+		// lower
+		for j := i + 1; j < A.rows; j++ {
+			L.el[j][i].Copy(A.el[j][i])
+
+			for k := 0; k < i; k++ {
+				x.Mul(L.el[j][k], U.el[k][i])
+				L.el[j][i].Sub(L.el[j][i], x)
+			}
+
+			L.el[j][i].Quo(L.el[j][i], U.el[i][i])
+		}
+	}
+
+	return L, U, nil
 }
 
 // Transpose returns the transpose of the matrix.
@@ -222,4 +251,19 @@ func (A *Matrix) Inverse() (*Matrix, error) {
 	// TODO
 
 	return mInv, nil
+}
+
+// Equals checks whether A = B.
+func Equals(A, B *Matrix) bool {
+	if A.rows != B.rows || A.cols != B.cols {
+		return false
+	}
+	for i := 0; i < A.rows; i++ {
+		for j := 0; j < A.cols; j++ {
+			if A.el[i][j].Cmp(B.el[i][j]) != 0 {
+				return false
+			}
+		}
+	}
+	return true
 }
