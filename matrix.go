@@ -330,7 +330,6 @@ func EstEquals(A, B *Matrix, eps float64) bool {
 			}
 
 			f, _ := diff.Float64()
-			fmt.Println(f)
 			if f > eps {
 				return false
 			}
