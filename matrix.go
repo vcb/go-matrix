@@ -67,7 +67,8 @@ func (A *Matrix) String() string {
 	for i := range A.el {
 		l := []string{}
 		for j := range A.el[i] {
-			l = append(l, fmt.Sprintf("% 3s", A.el[i][j].String()))
+			f, _ := A.el[i][j].Float64()
+			l = append(l, fmt.Sprintf("% 7.3f", f))
 		}
 		s = append(s, fmt.Sprintf("%s",
 			strings.Join(l, " ")))
@@ -136,13 +137,47 @@ func (A *Matrix) Sub(B *Matrix) (*Matrix, error) {
 }
 
 // Rref returns a reduced row-echelon form of the matrix.
-func (A *Matrix) Rref() *Matrix { return nil } // TODO
+func (A *Matrix) Rref() *Matrix {
+	B := A.Ref()
+
+	q := new(big.Float)
+	var i, j int
+	for i < B.rows && j < B.cols {
+		// column is zero, nothing to do
+		if B.el[i][j].Cmp(big.NewFloat(0)) == 0 {
+			j++
+			continue
+		}
+
+		// divide row by the leading element
+		q.Set(B.el[i][j])
+		for k := j; k < B.cols; k++ {
+			B.el[i][k].Quo(B.el[i][k], q)
+		}
+
+		// reduce all rows above
+		if i > 0 {
+			for h := i - 1; h >= 0; h-- {
+				q.Quo(B.el[h][j], B.el[i][j])
+				for k := j; k < B.cols; k++ {
+					B.el[h][k].Sub(B.el[h][k], q)
+				}
+			}
+		}
+
+		i++
+		j++
+	}
+
+	return B
+}
 
 // Ref returns a row-echelon form of the matrix using Gaussian elimination.
 func (A *Matrix) Ref() *Matrix {
 	B := A.Copy()
-	var i, j int
+
 	q, x := new(big.Float), new(big.Float)
+	var i, j int
 	for i < B.rows && j < B.cols {
 		// look for pivot row
 		iMax := func(i int) int {
@@ -241,16 +276,23 @@ func (A *Matrix) Transpose() *Matrix {
 	return AT
 }
 
-// Inverse returns the inverse of the matrix.
-func (A *Matrix) Inverse() (*Matrix, error) {
-	if A.rows != A.cols {
-		return nil, fmt.Errorf("matrix isn't square")
+// Cat concatenates matrices A, B horizontally and returns [A|B]
+func Cat(A, B *Matrix) *Matrix {
+	if A.rows != B.rows {
+		return nil
 	}
 
-	mInv := NewMatrix(A.cols, A.rows)
-	// TODO
-
-	return mInv, nil
+	C := NewMatrix(A.rows, A.cols+B.cols)
+	for i := 0; i < A.rows; i++ {
+		for j := 0; j < C.cols; j++ {
+			if j < A.cols {
+				C.el[i][j].Set(A.el[i][j])
+			} else {
+				C.el[i][j].Set(B.el[i][j-A.cols])
+			}
+		}
+	}
+	return C
 }
 
 // Equals checks whether A = B.
