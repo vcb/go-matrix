@@ -309,3 +309,32 @@ func Equals(A, B *Matrix) bool {
 	}
 	return true
 }
+
+// EstEquals checks whether A ~= B within eps.
+func EstEquals(A, B *Matrix, eps float64) bool {
+	if A.rows != B.rows || A.cols != B.cols {
+		return false
+	}
+
+	diff, mean := new(big.Float), new(big.Float)
+	for i := 0; i < A.rows; i++ {
+		for j := 0; j < A.cols; j++ {
+			diff.Sub(A.el[i][j], B.el[i][j])
+			diff.Abs(diff)
+
+			// use relative error if a and b are neither 0 nor infinity
+			if A.el[i][j].MinPrec() != 0 && B.el[i][j].MinPrec() != 0 {
+				mean.Add(A.el[i][j], B.el[i][j])
+				mean.Quo(mean, big.NewFloat(2))
+				diff.Quo(diff, mean)
+			}
+
+			f, _ := diff.Float64()
+			fmt.Println(f)
+			if f > eps {
+				return false
+			}
+		}
+	}
+	return true
+}
