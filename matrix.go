@@ -140,7 +140,7 @@ func (A *Matrix) Sub(B *Matrix) (*Matrix, error) {
 func (A *Matrix) Rref() *Matrix {
 	B := A.Ref()
 
-	q := new(big.Float)
+	q, x := new(big.Float), new(big.Float)
 	var i, j int
 	for i < B.rows && j < B.cols {
 		// column is zero, nothing to do
@@ -160,7 +160,8 @@ func (A *Matrix) Rref() *Matrix {
 			for h := i - 1; h >= 0; h-- {
 				q.Quo(B.el[h][j], B.el[i][j])
 				for k := j; k < B.cols; k++ {
-					B.el[h][k].Sub(B.el[h][k], q)
+					x.Mul(q, B.el[i][k])
+					B.el[h][k].Sub(B.el[h][k], x)
 				}
 			}
 		}
@@ -209,8 +210,7 @@ func (A *Matrix) Ref() *Matrix {
 			B.Set(h, j, 0)
 			for k := j + 1; k < B.cols; k++ {
 				x.Mul(q, B.el[i][k])
-				x.Sub(B.el[h][k], x)
-				B.el[h][k].Copy(x)
+				B.el[h][k].Sub(B.el[h][k], x)
 			}
 		}
 
