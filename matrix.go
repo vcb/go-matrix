@@ -136,6 +136,23 @@ func (A *Matrix) Sub(B *Matrix) (*Matrix, error) {
 	return C, nil
 }
 
+// Rank returns the rank of the matrix.
+func (A *Matrix) Rank() int {
+	B := A.Rref()
+
+	// count non-zero rows
+	var rank int
+	for i := 0; i < B.rows; i++ {
+		for j := 0; j < B.cols; j++ {
+			if B.el[i][j].Cmp(big.NewFloat(0)) != 0 {
+				rank++
+				break
+			}
+		}
+	}
+	return rank
+}
+
 // Rref returns a reduced row-echelon form of the matrix.
 func (A *Matrix) Rref() *Matrix {
 	B := A.Ref()
